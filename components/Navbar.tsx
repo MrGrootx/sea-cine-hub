@@ -1,17 +1,21 @@
 "use client";
 
 import { Search } from "@mui/icons-material";
+import { signOut } from "next-auth/react";
 import Link from "next/link";
-import { use, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 const Navbar = () => {
+  const router = useRouter();
+
   const [search, setSearch] = useState<string>("");
-  const [dropDownMenu, setDropDownMenu] = useState<boolean>(false);
+  const [dropdownMenu, setDropdownMenu] = useState<boolean>(false);
+
   const [isScrolled, setIsScrolled] = useState<boolean>(false);
 
   const handleScroll = () => {
-    const offset = window.scrollY;
-    if (offset > 10) {
+    if (window.scrollY > 10) {
       setIsScrolled(true);
     } else {
       setIsScrolled(false);
@@ -20,13 +24,18 @@ const Navbar = () => {
 
   useEffect(() => {
     window.addEventListener("scroll", handleScroll);
+    // Cleanup function to remove the event listener when component unmounts
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  const handleLogout = () => {
+    signOut({ callbackUrl: "/login" });
+  }
+
   return (
     <div className={`navbar ${isScrolled && "bg-black-1"}`}>
-      <Link href={"/"}>
-        <img src="/assets/logo.png" alt="logo" className="logo" />
+      <Link href="/">
+        <img src="/assets/logo.png"  alt="logo" className="logo" />
       </Link>
 
       <div className="nav-links">
@@ -41,25 +50,31 @@ const Navbar = () => {
       <div className="nav-right">
         <div className="search">
           <input
-            placeholder="Search Movie"
+            placeholder="Search movie..."
             className="input-search"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
-          <Search className="icon" />
+          <button disabled={search === ""}>
+            <Search
+              className="icon"
+              onClick={() => router.push(`/search/${search}`)}
+            />
+          </button>
         </div>
 
         <img
           src="/assets/profile_icon.jpg"
           className="profile"
           alt="profile"
-          onClick={() => setDropDownMenu(!dropDownMenu)}
+          onClick={() => setDropdownMenu(!dropdownMenu)}
         />
-        {dropDownMenu && (
+
+        {dropdownMenu && (
           <div className="dropdown-menu">
             <Link href="/">Home</Link>
             <Link href="/my-list">My List</Link>
-            <a href="">Log Out</a>
+            <a onClick={handleLogout}>Log Out</a>
           </div>
         )}
       </div>

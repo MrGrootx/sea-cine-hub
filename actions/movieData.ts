@@ -20,3 +20,16 @@ export const fetchGenreMovies = async () => {
   return genres;
 };
 
+export const searchMovies = async (query: string) => {
+  const data = await getApiResponse(`/search/movie?query=${query}`);
+  const searchMovies = data.results;
+
+  return searchMovies;
+};
+
+
+export const fetchMovieDetails = async (id: number) => {
+  const movieDetails = await getApiResponse(`/movie/${id}?append_to_response=videos`)
+
+  return movieDetails
+}

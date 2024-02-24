@@ -1,16 +1,32 @@
 "use client";
 import { Genre, Movie, Video } from "@lib/types";
-import { AddCircle, CancelRounded } from "@mui/icons-material";
+import { AddCircle, CancelRounded, RemoveCircle } from "@mui/icons-material";
+import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
+import Loader from "./Loader";
+import { useRouter } from "next/navigation";
 
 interface Props {
   movie: Movie;
   closeModal: () => void;
 }
 
+interface User {
+  email: string;
+  username: string;
+  favorites: number[];
+}
+
 const Modal = ({ movie, closeModal }: Props) => {
+  const router = useRouter()
   const [video, setVideo] = useState("");
   const [genres, setGenres] = useState<Genre[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<User | null>(null);
+  const [isFavorite, setIsFavorite] = useState(false);
+
+  const { data: session } = useSession();
+
   const options = {
     method: "GET",
     headers: {
@@ -33,8 +49,8 @@ const Modal = ({ movie, closeModal }: Props) => {
         );
         setVideo(data.videos.results[index].key);
       }
-      if(data?.genres) {
-         setGenres(data.genres);
+      if (data?.genres) {
+        setGenres(data.genres);
       }
     } catch (err) {
       console.log("Error fetching movie details", err);
@@ -44,7 +60,48 @@ const Modal = ({ movie, closeModal }: Props) => {
   useEffect(() => {
     getMovieDetails();
   }, [movie]);
-  return (
+
+  //  handle my list
+
+  const getUser = async () => {
+    try {
+      const res = await fetch(`/api/user/${session?.user?.email}`);
+      const data = await res.json();
+      setUser(data);
+      setIsFavorite(data.favorites.find((item: number) => item === movie.id));
+      setLoading(false);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  useEffect(() => {
+    if (session) getUser();
+  }, [session]);
+
+  const handleMyList = async () => {
+    try {
+      const res = await fetch(`/api/user/${session?.user?.email}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          movieId: movie.id,
+        }),
+      });
+      const data = await res.json();
+      setUser(data);
+      setIsFavorite(data.favorites.find((item: number) => item === movie.id));
+      router.refresh()
+    } catch (error) {
+      console.log(`Failed to handle myList`, error);
+    }
+  };
+
+  return loading ? (
+    <Loader />
+  ) : (
     <div className="modal">
       <button className="modal-close" onClick={closeModal}>
         <CancelRounded
@@ -67,7 +124,17 @@ const Modal = ({ movie, closeModal }: Props) => {
           </div>
           <div className="flex gap-3">
             <p className="text-base-bold">Add To List</p>
-            <AddCircle className="cursor-pointer text-pink-1" />
+            {isFavorite ? (
+              <RemoveCircle
+                className="cursor-pointer text-pink-1"
+                onClick={() => handleMyList()}
+              />
+            ) : (
+              <AddCircle
+                className="cursor-pointer text-pink-1"
+                onClick={() => handleMyList()}
+              />
+            )}
           </div>
         </div>
         <div className="flex gap-3">
